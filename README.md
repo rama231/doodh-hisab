@@ -11,7 +11,7 @@ Daily milk record portal — roz ka doodh, rate aur auto hisab.
 - Duplicate entry guard (same date + shift replace prompt)
 - Month / shift filter, edit & delete, custom confirm dialogs
 - Summary: month liters, amount, avg rate, today's total, 14-day bar chart
-- CSV export, JSON backup & restore, print / PDF
+- Excel (.xlsx) export with Records + Monthly Summary sheets, CSV export/import, JSON backup & restore, print / PDF
 - Mobile-first, dark mode, offline PWA (installable via "Add to Home screen")
 - Hindi/Hinglish UI, ₹ (INR) formatting
 
@@ -28,6 +28,8 @@ Plain HTML / CSS / JS (no build step), service worker for offline, deployed on V
 index.html   – markup
 styles.css   – styling (light + dark)
 app.js       – state, rendering, import/export
+csv-import.js – CSV parser + flexible column mapping (import)
+xlsx-lite.js – dependency-free .xlsx writer (ZIP + inline strings)
 sw.js        – offline cache
 vercel.json  – clean URLs + headers
 ```

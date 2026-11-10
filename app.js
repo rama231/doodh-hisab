@@ -441,6 +441,163 @@
   }
 
   /* ── export / backup ───────────────────────────────── */
+  /* ── CSV import ───────────────────────────────────── */
+  $("btn-import").addEventListener("click", () => $("file-import").click());
+
+  $("file-import").addEventListener("change", (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!window.CsvImport) return toast("CSV parser load nahi hua", true);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const res = window.CsvImport.read(String(reader.result || ""));
+      e.target.value = "";
+
+      if (res.missing && res.missing.length) {
+        toast("CSV me ye column chahiye: " + res.missing.join(", "), true);
+        return;
+      }
+      if (!res.records.length) {
+        toast("Koi valid row nahi mili" + (res.errors.length ? " — " + res.errors[0].reason : ""), true);
+        return;
+      }
+
+      const tl = res.records.reduce((s, r) => s + r.qty, 0);
+      const ta = res.records.reduce((s, r) => s + r.qty * r.rate, 0);
+      const first = res.records[0].date;
+      const last = res.records[res.records.length - 1].date;
+      const willUpdate = res.records.filter((r) => state.records.some((x) => x.date === r.date && x.shift === r.shift)).length;
+
+      const lines = [
+        res.records.length + " record mili — " + prettyDate(first).main + " se " + prettyDate(last).main,
+        "Total: " + fmtL(tl) + " L · " + fmtMoney(ta),
+      ];
+      if (willUpdate) lines.push(willUpdate + " entry pehle se hai — update ho jayegi");
+      if (res.duplicates) lines.push(res.duplicates + " duplicate row (same date+shift) — aakhri wali li gayi");
+      if (res.errors.length) lines.push(res.errors.length + " row skip: " + res.errors.slice(0, 3).map((x) => "row " + x.row + " (" + x.reason + ")").join(" · "));
+      lines.push("", "Import karein?");
+
+      const ok = await askConfirm(lines.join("\n"), "Import karein");
+      if (!ok) return;
+
+      let added = 0, updated = 0;
+      res.records.forEach((p) => {
+        const dup = state.records.find((r) => r.date === p.date && r.shift === p.shift);
+        if (dup) {
+          dup.qty = p.qty;
+          dup.rate = p.rate;
+          dup.fat = p.fat;
+          dup.note = p.note;
+          updated++;
+        } else {
+          state.records.push(Object.assign({ id: uid() }, p));
+          added++;
+        }
+      });
+
+      save();
+      render(monthOf(last));
+      toast(added + " record add · " + updated + " update");
+    };
+    reader.onerror = () => toast("File padhi nahi ja saki", true);
+    reader.readAsText(file, "utf-8");
+  });
+
+  /* ── Excel (.xlsx) export ─────────────────────────── */
+  function downloadBlob(name, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  const dateSerial = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1899, 11, 30)) / 86400000);
+  };
+
+  $("btn-xlsx").addEventListener("click", () => {
+    const rows = filtered();
+    if (!rows.length) return toast("Export ke liye koi record nahi", true);
+    if (!window.XlsxLite) return toast("Excel engine load nahi hua", true);
+
+    const head = ["Date", "Day", "Shift", "Liter", "Rate (₹)", "Amount (₹)", "Fat", "Note"];
+    const sheetRows = [head.map((v) => ({ v, s: 1 }))];
+
+    rows.slice().reverse().forEach((r) => {
+      const d = new Date(r.date + "T00:00:00");
+      sheetRows.push([
+        { v: dateSerial(r.date), t: "n", s: 5 },
+        { v: d.toLocaleDateString("en-IN", { weekday: "short" }) },
+        { v: shiftLabel(r.shift) },
+        { v: r2(r.qty), t: "n", s: 2 },
+        { v: r2(r.rate), t: "n", s: 2 },
+        { v: amountOf(r), t: "n", s: 2 },
+        { v: r.fat === null ? "" : r2(r.fat), t: "n", s: 2 },
+        { v: r.note || "" },
+      ]);
+    });
+
+    const tl = rows.reduce((s, r) => s + r.qty, 0);
+    const ta = rows.reduce((s, r) => s + amountOf(r), 0);
+    sheetRows.push([
+      { v: "Total", s: 3 },
+      { v: rows.length + " entry", s: 3 },
+      { v: "", s: 3 },
+      { v: r2(tl), t: "n", s: 4 },
+      { v: tl > 0 ? r2(ta / tl) : 0, t: "n", s: 4 },
+      { v: r2(ta), t: "n", s: 4 },
+      { v: "", s: 3 },
+      { v: "", s: 3 },
+    ]);
+
+    const byMonth = {};
+    state.records.forEach((r) => {
+      const k = monthOf(r.date);
+      if (!byMonth[k]) byMonth[k] = { qty: 0, amt: 0, n: 0 };
+      byMonth[k].qty += r.qty;
+      byMonth[k].amt += amountOf(r);
+      byMonth[k].n += 1;
+    });
+    const months = Object.keys(byMonth).sort().reverse();
+    const sumRows = [["Month", "Entries", "Liters", "Amount (₹)", "Avg rate (₹/L)"].map((v) => ({ v, s: 1 }))];
+    months.forEach((m) => {
+      const v = byMonth[m];
+      sumRows.push([
+        { v: monthLabel(m) },
+        { v: v.n, t: "n" },
+        { v: r2(v.qty), t: "n", s: 2 },
+        { v: r2(v.amt), t: "n", s: 2 },
+        { v: v.qty > 0 ? r2(v.amt / v.qty) : 0, t: "n", s: 2 },
+      ]);
+    });
+    const tq = months.reduce((s, m) => s + byMonth[m].qty, 0);
+    const tm = months.reduce((s, m) => s + byMonth[m].amt, 0);
+    sumRows.push([
+      { v: "Total", s: 3 },
+      { v: state.records.length, t: "n", s: 4 },
+      { v: r2(tq), t: "n", s: 4 },
+      { v: r2(tm), t: "n", s: 4 },
+      { v: tq > 0 ? r2(tm / tq) : 0, t: "n", s: 4 },
+    ]);
+
+    const blob = window.XlsxLite.build({
+      sheets: [
+        { name: "Records", cols: [12, 6, 9, 9, 10, 13, 6, 30], rows: sheetRows, freeze: 1, autoFilter: "A1:H" + (sheetRows.length - 1) },
+        { name: "Monthly Summary", cols: [18, 9, 10, 13, 13], rows: sumRows, freeze: 1 },
+      ],
+    });
+
+    const label = els.monthSel.value === "all" ? "all" : els.monthSel.value;
+    downloadBlob("doodh-hisab-" + label + "-" + todayISO() + ".xlsx", blob);
+    toast("Excel sheet download ho gayi");
+  });
+
   function download(name, text, mime) {
     const blob = new Blob([text], { type: mime || "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);

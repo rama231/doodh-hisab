@@ -161,15 +161,21 @@
   <section class="card panel data-actions">
     <div class="panel-head"><h2>Data</h2></div>
     <div class="btn-row">
-      <button class="btn" id="btn-csv" type="button">⬇️ CSV export</button>
+      <button class="btn primary" id="btn-xlsx" type="button">📊 Excel (.xlsx)</button>
+      <button class="btn" id="btn-csv" type="button">⬇️ CSV</button>
+      <button class="btn" id="btn-import" type="button">📥 CSV import</button>
       <button class="btn" id="btn-backup" type="button">🗄️ Backup (JSON)</button>
       <button class="btn" id="btn-restore" type="button">📤 Restore</button>
       <button class="btn danger" id="btn-clear" type="button">🗑️ Sab delete</button>
       <input type="file" id="file-restore" accept="application/json,.json" hidden />
+      <input type="file" id="file-import" accept=".csv,text/csv" hidden />
     </div>
     <p class="hint">
       Sara data aapke browser me (localStorage) save hota hai — server par nahi jata.
       Browser data clear karne se pehle <strong>Backup</strong> zaroor le lein.
+      <br />
+      <strong>CSV import:</strong> columns Date, Shift, Liter, Rate (Fat, Note optional). Date <code>2026-11-10</code> ya <code>10/11/2026</code>;
+      Shift Subah/Shaam. Same date + shift pehle se ho to wo entry update ho jayegi.
     </p>
   </section>
 
@@ -217,6 +223,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="csv-import.js"></script>
+<script src="xlsx-lite.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

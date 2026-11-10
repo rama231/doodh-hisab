@@ -3,3 +3,5 @@ test-shots-2
 patch*.mjs
 *.log
 prod-check
+import-test
+xlsx-test

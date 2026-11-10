@@ -1,6 +1,6 @@
 /* Offline cache — network first, cache fallback */
-const CACHE = "doodh-hisab-v2";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./icon.svg", "./manifest.webmanifest"];
+const CACHE = "doodh-hisab-v4";
+const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./csv-import.js", "./xlsx-lite.js", "./icon.svg", "./manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
