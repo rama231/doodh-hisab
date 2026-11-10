@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Doodh Hisab — Daily Milk Record</title>
+<meta name="description" content="Roz ka doodh record rakhein — rate, liter aur auto hisab. Monthly total, CSV export, offline support." />
+<meta name="theme-color" content="#0f5132" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">🥛</span>
+    <div class="brand-text">
+      <h1>Doodh Hisab</h1>
+      <p>Daily milk record &amp; rate hisab</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn ghost" id="btn-settings" type="button" title="Default rate setting">⚙️ Rate</button>
+    <button class="btn ghost" id="btn-print" type="button" title="Print / PDF">🖨️ Print</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ── Stats ─────────────────────────────────────────── -->
+  <section class="stats" id="stats" aria-label="Summary">
+    <article class="stat card">
+      <span class="stat-label">Is mahine ka doodh</span>
+      <strong class="stat-value" id="stat-liters">0.0 <small>L</small></strong>
+      <span class="stat-foot" id="stat-days">0 din</span>
+    </article>
+    <article class="stat card accent">
+      <span class="stat-label">Is mahine ka amount</span>
+      <strong class="stat-value" id="stat-amount">₹0</strong>
+      <span class="stat-foot" id="stat-avg">avg ₹0 / L</span>
+    </article>
+    <article class="stat card">
+      <span class="stat-label">Aaj</span>
+      <strong class="stat-value" id="stat-today">—</strong>
+      <span class="stat-foot" id="stat-today-amt">entry baaki</span>
+    </article>
+    <article class="stat card">
+      <span class="stat-label">Total records</span>
+      <strong class="stat-value" id="stat-total">0</strong>
+      <span class="stat-foot" id="stat-range">—</span>
+    </article>
+  </section>
+
+  <!-- ── Entry form ────────────────────────────────────── -->
+  <section class="card panel" id="entry-panel">
+    <div class="panel-head">
+      <h2 id="form-title">Naya entry</h2>
+      <span class="pill" id="form-mode">Add</span>
+    </div>
+
+    <form id="entry-form" novalidate>
+      <div class="grid">
+        <label class="field">
+          <span>Date</span>
+          <input type="date" id="f-date" required />
+        </label>
+
+        <div class="field">
+          <span>Shift</span>
+          <div class="seg" role="group" aria-label="Shift">
+            <button type="button" class="seg-btn active" aria-pressed="true" data-shift="morning" id="seg-morning">🌅 Subah</button>
+            <button type="button" class="seg-btn" aria-pressed="false" data-shift="evening" id="seg-evening">🌙 Shaam</button>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Doodh (liter)</span>
+          <input type="number" id="f-qty" inputmode="decimal" step="0.01" min="0" placeholder="0.0" required />
+        </label>
+
+        <label class="field">
+          <span>Rate (₹ / liter)</span>
+          <input type="number" id="f-rate" inputmode="decimal" step="0.01" min="0" placeholder="0" required />
+        </label>
+
+        <label class="field">
+          <span>Fat <em class="opt">(optional)</em></span>
+          <input type="number" id="f-fat" inputmode="decimal" step="0.1" min="0" placeholder="—" />
+        </label>
+
+        <label class="field">
+          <span>Note <em class="opt">(optional)</em></span>
+          <input type="text" id="f-note" placeholder="jaise: gaay ka doodh" maxlength="80" />
+        </label>
+      </div>
+
+      <div class="form-foot">
+        <div class="amount-preview">
+          <span>Amount</span>
+          <strong id="preview-amount">₹0</strong>
+        </div>
+        <div class="form-btns">
+          <button type="button" class="btn ghost" id="btn-cancel" hidden>Cancel</button>
+          <button type="submit" class="btn primary" id="btn-save">Save entry</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <!-- ── Chart ─────────────────────────────────────────── -->
+  <section class="card panel" aria-label="Last 14 days chart">
+    <div class="panel-head">
+      <h2>Pichhle 14 din</h2>
+      <span class="pill muted" id="chart-total">0 L</span>
+    </div>
+    <div class="chart" id="chart" role="img" aria-label="Daily milk liters chart"></div>
+  </section>
+
+  <!-- ── Records ───────────────────────────────────────── -->
+  <section class="card panel" id="records-panel">
+    <div class="panel-head">
+      <h2>Records</h2>
+      <div class="filters">
+        <select id="f-month" aria-label="Month filter"></select>
+        <select id="f-shift" aria-label="Shift filter">
+          <option value="all">Dono shift</option>
+          <option value="morning">Subah</option>
+          <option value="evening">Shaam</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-scroll">
+      <table class="records" id="records-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Shift</th>
+            <th class="num">Liter</th>
+            <th class="num">Rate</th>
+            <th class="num">Amount</th>
+            <th class="act">—</th>
+          </tr>
+        </thead>
+        <tbody id="records-body"></tbody>
+        <tfoot id="records-foot"></tfoot>
+      </table>
+    </div>
+
+    <div class="empty" id="empty-state" hidden>
+      <div class="empty-ico">🥛</div>
+      <h3>Abhi koi entry nahi hai</h3>
+      <p>Upar form me aaj ka doodh aur rate daal kar <strong>Save entry</strong> dabaiye.</p>
+    </div>
+  </section>
+
+  <!-- ── Data actions ──────────────────────────────────── -->
+  <section class="card panel data-actions">
+    <div class="panel-head"><h2>Data</h2></div>
+    <div class="btn-row">
+      <button class="btn" id="btn-csv" type="button">⬇️ CSV export</button>
+      <button class="btn" id="btn-backup" type="button">🗄️ Backup (JSON)</button>
+      <button class="btn" id="btn-restore" type="button">📤 Restore</button>
+      <button class="btn danger" id="btn-clear" type="button">🗑️ Sab delete</button>
+      <input type="file" id="file-restore" accept="application/json,.json" hidden />
+    </div>
+    <p class="hint">
+      Sara data aapke browser me (localStorage) save hota hai — server par nahi jata.
+      Browser data clear karne se pehle <strong>Backup</strong> zaroor le lein.
+    </p>
+  </section>
+
+  <footer class="foot">
+    <span>Doodh Hisab</span>
+    <span>·</span>
+    <span id="foot-updated">—</span>
+  </footer>
+</main>
+
+<!-- ── Settings dialog ─────────────────────────────────── -->
+<dialog id="settings-dialog" class="modal">
+  <form method="dialog" id="settings-form">
+    <h2>Rate setting</h2>
+    <p class="hint">Default rate form me auto-fill hoga. Aap har entry me badal bhi sakte hain.</p>
+    <div class="grid two">
+      <label class="field">
+        <span>🌅 Subah rate (₹/L)</span>
+        <input type="number" id="s-morning" inputmode="decimal" step="0.01" min="0" placeholder="0" />
+      </label>
+      <label class="field">
+        <span>🌙 Shaam rate (₹/L)</span>
+        <input type="number" id="s-evening" inputmode="decimal" step="0.01" min="0" placeholder="0" />
+      </label>
+    </div>
+    <label class="field">
+      <span>Naam <em class="opt">(optional)</em></span>
+      <input type="text" id="s-owner" maxlength="40" placeholder="e.g. Ramesh Dairy" />
+    </label>
+    <div class="modal-foot">
+      <button value="cancel" class="btn ghost" type="submit">Cancel</button>
+      <button value="save" class="btn primary" type="submit" id="s-save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="confirm-dialog" class="modal">
+  <h2 id="confirm-title">Confirm</h2>
+  <p id="confirm-msg" class="confirm-msg"></p>
+  <div class="modal-foot">
+    <button class="btn ghost" id="confirm-no" type="button">Cancel</button>
+    <button class="btn primary" id="confirm-yes" type="button">OK</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

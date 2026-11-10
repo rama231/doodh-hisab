@@ -1,0 +1,19 @@
+{
+  "name": "Doodh Hisab — Daily Milk Record",
+  "short_name": "Doodh Hisab",
+  "description": "Roz ka doodh record, rate aur auto hisab.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fbf8f3",
+  "theme_color": "#0f5132",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

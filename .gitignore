@@ -1,0 +1,5 @@
+.vercel
+.env*
+test-shots/
+test-shots-2/
+prod-check/

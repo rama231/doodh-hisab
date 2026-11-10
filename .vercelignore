@@ -1,0 +1,5 @@
+test-shots
+test-shots-2
+patch*.mjs
+*.log
+prod-check
