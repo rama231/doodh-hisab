@@ -44,3 +44,7 @@ python -m http.server 8123
 ```bash
 npx vercel deploy --prod
 ```
+
+## Auto deploy
+
+Har git push (main branch) par Vercel khud deploy karta hai - GitHub integration connected hai.
